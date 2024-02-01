@@ -1,0 +1,7 @@
+<library path="lib/libfranka_sara_shield_controller">
+  <class name="franka_sara_shield_controller/SaraShieldController" type="franka_sara_shield_controller::SaraShieldController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      Sara shield controller for panda
+    </description>
+   </class>
+</library>
