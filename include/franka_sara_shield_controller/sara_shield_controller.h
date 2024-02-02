@@ -12,6 +12,8 @@
 #include <ros/node_handle.h>
 #include <ros/time.h>
 
+#include "safety_shield/safety_shield.h"
+
 namespace franka_sara_shield_controller {
 
 class SaraShieldController : public controller_interface::MultiInterfaceController<
@@ -26,6 +28,7 @@ class SaraShieldController : public controller_interface::MultiInterfaceControll
   std::vector<hardware_interface::JointHandle> position_joint_handles_;
   ros::Duration elapsed_time_;
   std::array<double, 7> initial_pose_{};
+  safety_shield::SafetyShield shield_;
 };
 
 }  // namespace franka_sara_shield_controller

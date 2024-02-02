@@ -25,9 +25,11 @@ find_package(catkin REQUIRED COMPONENTS
   visualization_msgs
 )
 
+set(safety_shield_DIR /home/user/sara-shield/safety_shield/build)
 
 find_package(Eigen3 REQUIRED)
-#(safety_shield REQUIRED)
+# find_package(SaRA REQUIRED)
+find_package(safety_shield REQUIRED)
 find_package(Franka 0.9.0 QUIET)
 if(NOT Franka_FOUND)
   find_package(Franka 0.8.0 REQUIRED)
@@ -36,11 +38,6 @@ endif()
 # merge Franka + INCLUDE_DIRS in topological order
 list_insert_in_workspace_order(catkin_INCLUDE_DIRS ${Franka_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 
-#add_message_files(FILES
-#  JointTorqueComparison.msg
-#)
-
-#generate_messages()
 
 generate_dynamic_reconfigure_options(
   cfg/compliance_param.cfg
@@ -70,7 +67,6 @@ catkin_package(
     roscpp
     urdf
     visualization_msgs
-    safety_shield
   DEPENDS Franka
 )
 
@@ -81,20 +77,21 @@ add_library(franka_sara_shield_controller
 add_dependencies(franka_sara_shield_controller
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
-  #${PROJECT_NAME}_generate_messages_cpp
-  #${PROJECT_NAME}_gencpp
+  safety_shield
   ${PROJECT_NAME}_gencfg
 )
 
 target_link_libraries(franka_sara_shield_controller PUBLIC
   ${Franka_LIBRARIES}
   ${catkin_LIBRARIES}
+  safety_shield
 )
 
 target_include_directories(franka_sara_shield_controller SYSTEM PUBLIC
   ${EIGEN3_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
+
 target_include_directories(franka_sara_shield_controller PUBLIC
   include
 )

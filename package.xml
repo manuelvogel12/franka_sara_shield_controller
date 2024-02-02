@@ -31,7 +31,6 @@
   <depend>roscpp</depend>
   <depend>urdf</depend>
   <depend>visualization_msgs</depend>
-  <depend>safety_shield</depend>
 
   <exec_depend>franka_control</exec_depend>
   <exec_depend>franka_description</exec_depend>
