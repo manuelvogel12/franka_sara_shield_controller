@@ -47,7 +47,33 @@ bool SaraShieldController::init(hardware_interface::RobotHW* robot_hardware,
       return false;
     }
   }
+  // safety shield
+  bool activate_shield = true;
+  double sample_time = 0.01;
+  std::string folder = "/home/user/catkin_ws/src/franka_sara_shield_controller/config/";
+  std::string trajectory_config_file = folder + "trajectory_parameters_panda.yaml";
+  std::string robot_config_file = folder + "robot_parameters_panda.yaml";
+  std::string mocap_config_file = folder + "cmu_mocap_no_hand.yaml";
+  double init_x = 0.0;
+  double init_y = 0.0;
+  double init_z = 0.0;
+  double init_roll = 0.0;
+  double init_pitch = 0.0;
+  double init_yaw = 0.0;
+  std::vector<double> init_qpos = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
+  shield_ = new safety_shield::SafetyShield(
+    sample_time,
+    trajectory_config_file,
+    robot_config_file,
+    mocap_config_file,
+    init_x,
+    init_y,
+    init_z,
+    init_roll,
+    init_pitch,
+    init_yaw,
+    init_qpos);
   return true;
 }
 
@@ -56,36 +82,6 @@ void SaraShieldController::starting(const ros::Time& /* time */) {
     initial_pose_[i] = position_joint_handles_[i].getPosition();
   }
   elapsed_time_ = ros::Duration(0.0);
-
-
-  // safety shield
-  bool activate_shield = true;
-  double sample_time = 0.01;
-  std::string folder = "/home/user/catkin_ws/src/franka_sara_shield_controller/config/";
-  std::string trajectory_config_file = folder + "trajectory_parameters_panda.yaml";
-  std::string robot_config_file = folder + "robot_parameters_panda.yaml";
-  std::string mocap_config_file = folder + "cmu_mocap.yaml";
-
-    double init_x = 0.0;
-    double init_y = 0.0;
-    double init_z = 0.0;
-    double init_roll = 0.0;
-    double init_pitch = 0.0;
-    double init_yaw = 0.0;
-    std::vector<double> init_qpos = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  shield_ = safety_shield::SafetyShield(
-      sample_time,
-      trajectory_config_file,
-      robot_config_file,
-      mocap_config_file,
-      init_x,
-      init_y,
-      init_z,
-      init_roll,
-      init_pitch,
-      init_yaw,
-      init_qpos);
 }
 
 void SaraShieldController::update(const ros::Time& /*time*/,

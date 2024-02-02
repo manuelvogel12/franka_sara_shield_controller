@@ -34,14 +34,14 @@
 
   <rosparam command="load" file="$(find franka_sara_shield_controller)/config/franka_sara_shield_controller.yaml" subst_value="true" />
 
-  <include file="$(find franka_gazebo)/launch/robot.launch">
+  <include file="$(find franka_gazebo)/launch/panda.launch">
     <arg name="gazebo" value="$(arg gazebo)" />
     <arg name="headless" value="$(arg headless)" />
     <arg name="paused" value="$(arg paused)" />
     <arg name="world" value="$(arg world)" />
     <arg name="rviz" value="$(arg rviz)" />
 
-    <arg name="robot" value="panda" />
+    <!--arg name="robot" value="panda" /-->
     <arg name="arm_id" value="$(arg arm_id)" />
     <arg name="use_gripper" value="$(arg use_gripper)" />
     <arg name="controller" value="$(arg controller)" />

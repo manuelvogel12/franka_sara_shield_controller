@@ -2,11 +2,11 @@
 <package format="2">
   <name>franka_sara_shield_controller</name>
   <version>0.10.1</version>
-  <description>franka_sara_shield_controller TODO</description>
-  <maintainer email="todo@todo.de">TODO</maintainer>
+  <description>franka_sara_shield_controller</description>
+  <maintainer email="manuel_philipp.vogel@tum.de">Manuel Vogel</maintainer>
   <license>Apache 2.0</license>
 
-  <author>TODO</author>
+  <author>Manuel Vogel</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
@@ -31,6 +31,7 @@
   <depend>roscpp</depend>
   <depend>urdf</depend>
   <depend>visualization_msgs</depend>
+  <depend>franka_gazebo</depend>
 
   <exec_depend>franka_control</exec_depend>
   <exec_depend>franka_description</exec_depend>

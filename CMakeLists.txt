@@ -23,9 +23,11 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   urdf
   visualization_msgs
+  franka_gazebo
 )
 
-set(safety_shield_DIR /home/user/sara-shield/safety_shield/build)
+set(safety_shield_DIR /usr/local/lib/cmake/safety_shield)
+# set(safety_shield_DIR /home/user/sara-shield/safety_shield/build)
 
 find_package(Eigen3 REQUIRED)
 # find_package(SaRA REQUIRED)
@@ -67,6 +69,7 @@ catkin_package(
     roscpp
     urdf
     visualization_msgs
+    franka_gazebo
   DEPENDS Franka
 )
 
