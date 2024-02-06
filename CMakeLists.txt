@@ -80,14 +80,12 @@ add_library(franka_sara_shield_controller
 add_dependencies(franka_sara_shield_controller
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
-  safety_shield
   ${PROJECT_NAME}_gencfg
 )
 
 target_link_libraries(franka_sara_shield_controller PUBLIC
   ${Franka_LIBRARIES}
   ${catkin_LIBRARIES}
-  safety_shield
 )
 
 target_include_directories(franka_sara_shield_controller SYSTEM PUBLIC
@@ -96,6 +94,33 @@ target_include_directories(franka_sara_shield_controller SYSTEM PUBLIC
 )
 
 target_include_directories(franka_sara_shield_controller PUBLIC
+  include
+)
+
+
+add_executable(sara_shield_node
+  src/sara_shield_ros_node.cpp
+)
+
+add_dependencies(sara_shield_node
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+  safety_shield
+  ${PROJECT_NAME}_gencfg
+)
+
+target_link_libraries(sara_shield_node PUBLIC
+  ${Franka_LIBRARIES}
+  ${catkin_LIBRARIES}
+  safety_shield
+)
+
+target_include_directories(sara_shield_node SYSTEM PUBLIC
+  ${EIGEN3_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
+)
+
+target_include_directories(sara_shield_node PUBLIC
   include
 )
 
