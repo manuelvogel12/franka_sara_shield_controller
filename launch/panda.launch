@@ -32,6 +32,10 @@
        />
   <arg name="interactive_marker" default="$(eval arg('controller') == 'cartesian_impedance_example_controller')" doc="Should the interactive marker node be started?" />
 
+  <node name="sara_shield_node" pkg="franka_sara_shield_controller" type="sara_shield_node" />
+
+  <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find franka_sara_shield_controller)/rviz/franka_sara_shield.rviz" if="$(arg rviz)"/>
+
   <rosparam command="load" file="$(find franka_sara_shield_controller)/config/franka_sara_shield_controller.yaml" subst_value="true" />
 
   <include file="$(find franka_gazebo)/launch/panda.launch">
@@ -39,7 +43,7 @@
     <arg name="headless" value="$(arg headless)" />
     <arg name="paused" value="$(arg paused)" />
     <arg name="world" value="$(arg world)" />
-    <arg name="rviz" value="$(arg rviz)" />
+    <arg name="rviz" value="false" />
 
     <!--arg name="robot" value="panda" /-->
     <arg name="arm_id" value="$(arg arm_id)" />
