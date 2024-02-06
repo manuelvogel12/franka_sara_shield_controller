@@ -24,9 +24,9 @@ class SaraShieldRosNode {
   void main_loop(const ros::TimerEvent &);
 
  private:
-  std::array<double, 7> initial_pose_;
   safety_shield::SafetyShield* shield_;
 
+  bool init_ = false;
   bool new_goal_ = false;
   int update_iteration_ = 0;
   std::vector<double> goal_joint_pos_;
@@ -39,8 +39,8 @@ class SaraShieldRosNode {
   ros::Subscriber force_safe_sub_;
   ros::Subscriber force_unsafe_sub_;
   ros::Subscriber humans_in_scene_sub_;
+  ros::Subscriber robot_current_pos_sub_;
   ros::Publisher robot_marker_pub_;
-  ros::Publisher robot_current_pos_pub_;
   ros::Publisher sara_shield_safe_pub_;
   ros::Publisher joint_pos_pub_;
   
@@ -52,6 +52,7 @@ class SaraShieldRosNode {
   
   // callbacks
   void goalJointPosCallback(const std_msgs::Float32MultiArray& msg);
+  void observeRobotJointCallback(const std_msgs::Float32MultiArray& msg);
   void forceSafeCallback(const std_msgs::Bool & msg);
   void forceUnsafeCallback(const std_msgs::Bool & msg);
   void humansInSceneCallback(const std_msgs::Bool& msg);

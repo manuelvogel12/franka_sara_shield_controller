@@ -10,15 +10,14 @@ SaraShieldRosNode::SaraShieldRosNode():
     force_safe_sub_(nh.subscribe("/sara_shield/force_safe", 100, & SaraShieldRosNode::forceSafeCallback, this)),
     force_unsafe_sub_(nh.subscribe("/sara_shield/force_unsafe", 100, & SaraShieldRosNode::forceUnsafeCallback, this)),
     humans_in_scene_sub_(nh.subscribe("/sara_shield/humans_in_scene", 100, &SaraShieldRosNode::humansInSceneCallback, this)),
+    robot_current_pos_sub_(nh.subscribe("/sara_shield/current_joint_pos", 100, &SaraShieldRosNode::observeRobotJointCallback, this)),
     human_marker_pub_(nh.advertise<visualization_msgs::MarkerArray>("/sara_shield/human_joint_marker_array", 100)),
     robot_marker_pub_(nh.advertise<visualization_msgs::MarkerArray>("/sara_shield/robot_joint_marker_array", 100)),
-    //robot_current_pos_pub_(nh.advertise<std_msgs::Float32MultiArray>("/sara_shield/current_joint_pos", 100)),
     sara_shield_safe_pub_(nh.advertise<std_msgs::Bool>("/sara_shield/is_safe", 100)),
     joint_pos_pub_(nh.advertise<std_msgs::Float64MultiArray>("/sara_shield/joint_pos_output", 100)),
     timer_(nh.createTimer(ros::Duration(0.004), &SaraShieldRosNode::main_loop, this))
 {
     // safety shield values
-  bool activate_shield = true;
   double sample_time = 0.004;
   std::string folder = "/home/user/catkin_ws/src/franka_sara_shield_controller/config/";
   std::string trajectory_config_file = folder + "trajectory_parameters_panda.yaml";
@@ -54,52 +53,52 @@ SaraShieldRosNode::SaraShieldRosNode():
 
   //TODO get initial_pose
   // reset sara shield
-  std::vector<double> initial_pose_vec(initial_pose_.begin(), initial_pose_.end());
-  shield_->reset(0, 0, 0, 0, 0, 0, initial_pose_vec, ros::Time::now().toSec());
 }
 
 void SaraShieldRosNode::main_loop(const ros::TimerEvent &){
-  
-    std::cout<<"test1"<<std::endl;
-    shield_->humanMeasurement(human_meas_, ros::Time::now().toSec());
 
-     std::cout<<"test2"<<std::endl;
-    // check if a new goal pose is set. If so, give a new LongTermTrajectory to sara shield
-    if(new_goal_){
-        new_goal_ = false;
-        std::vector<double> qvel{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-        shield_->newLongTermTrajectory(goal_joint_pos_, qvel);
-        std::cout<<"new trajectory set"<<std::endl;
+    if(init_)
+    {
+
+        shield_->humanMeasurement(human_meas_, ros::Time::now().toSec());
+
+        // check if a new goal pose is set. If so, give a new LongTermTrajectory to sara shield
+        if(new_goal_){
+            new_goal_ = false;
+            std::vector<double> qvel{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+            shield_->newLongTermTrajectory(goal_joint_pos_, qvel);
+            std::cout<<"new trajectory set"<<std::endl;
+        }
+
+        // Perform a sara shield update step
+        safety_shield::Motion next_motion = shield_->step(ros::Time::now().toSec());
+        //std::cout<<"time"<<ros::Time::now().toSec()<<std::endl;
+        std::vector<double> q = next_motion.getAngle(); 
+        //for(double qi:q){
+        //  std::cout<<qi<<" ";
+        //}
+        //std::cout<<std::endl;
+
+        // send out the message
+        std_msgs::Float64MultiArray joint_pos_output_msg;
+        joint_pos_output_msg.data = q;
+        joint_pos_pub_.publish(joint_pos_output_msg);
+
+        if(!shield_->getSafety()){
+            ROS_ERROR("NOT SAFE");
+        }
+
+        // visualize human every 100 iterations
+        if(update_iteration_++ == 100){
+            update_iteration_ = 0;
+            visualizeRobotAndHuman();
+        }
+
+        // Send status bool
+        std_msgs::Bool status;
+        status.data = shield_->getSafety();
+        sara_shield_safe_pub_.publish(status);
     }
-
-    // Perform a sara shield update step
-    safety_shield::Motion next_motion = shield_->step(ros::Time::now().toSec());
-    //std::cout<<"time"<<ros::Time::now().toSec()<<std::endl;
-    std::vector<double> q = next_motion.getAngle(); 
-    //for(double qi:q){
-    //  std::cout<<qi<<" ";
-    //}
-    //std::cout<<std::endl;
-
-    // send out the message
-    std_msgs::Float64MultiArray joint_pos_output_msg;
-    joint_pos_output_msg.data = q;
-    joint_pos_pub_.publish(joint_pos_output_msg);
-
-    if(!shield_->getSafety()){
-        ROS_ERROR("NOT SAFE");
-    }
-
-    // visualize human every 100 iterations
-    if(update_iteration_++ == 100){
-        update_iteration_ = 0;
-        visualizeRobotAndHuman();
-    }
-
-    // Send status bool
-    std_msgs::Bool status;
-    status.data = shield_->getSafety();
-    sara_shield_safe_pub_.publish(status);
 }
 
 
@@ -110,6 +109,16 @@ void SaraShieldRosNode::goalJointPosCallback(const std_msgs::Float32MultiArray& 
   std::vector<double> a(msg.data.begin(), msg.data.end());
   goal_joint_pos_ = a;
   new_goal_ = true;
+}
+
+void SaraShieldRosNode::observeRobotJointCallback(const std_msgs::Float32MultiArray& msg)
+{
+  if(!init_){
+    std::vector<double> initial_pose_vec(msg.data.begin(), msg.data.end());
+    shield_->reset(0, 0, 0, 0, 0, 0, initial_pose_vec, ros::Time::now().toSec());
+    init_ = true;
+  }
+
 }
 
 
