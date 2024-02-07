@@ -51,15 +51,12 @@ SaraShieldRosNode::SaraShieldRosNode():
     human_meas_[i] = std::vector<double>{1200, 1200, 0};
   }
 
-  //TODO get initial_pose
-  // reset sara shield
 }
 
 void SaraShieldRosNode::main_loop(const ros::TimerEvent &){
 
     if(init_)
     {
-
         shield_->humanMeasurement(human_meas_, ros::Time::now().toSec());
 
         // check if a new goal pose is set. If so, give a new LongTermTrajectory to sara shield
@@ -73,7 +70,7 @@ void SaraShieldRosNode::main_loop(const ros::TimerEvent &){
         // Perform a sara shield update step
         safety_shield::Motion next_motion = shield_->step(ros::Time::now().toSec());
         //std::cout<<"time"<<ros::Time::now().toSec()<<std::endl;
-        std::vector<double> q = next_motion.getAngle(); 
+        std::vector<double> q = next_motion.getAngle();
         //for(double qi:q){
         //  std::cout<<qi<<" ";
         //}
@@ -89,7 +86,7 @@ void SaraShieldRosNode::main_loop(const ros::TimerEvent &){
         }
 
         // visualize human every 100 iterations
-        if(update_iteration_++ == 100){
+        if(update_iteration_++ == 10){
             update_iteration_ = 0;
             visualizeRobotAndHuman();
         }
@@ -123,14 +120,14 @@ void SaraShieldRosNode::observeRobotJointCallback(const std_msgs::Float32MultiAr
 
 
 void SaraShieldRosNode::forceSafeCallback(const std_msgs::Bool & msg){
-  //shield_->setForceSafe(msg.data);
+  shield_->setForceSafe(msg.data);
 }
 
 void SaraShieldRosNode::forceUnsafeCallback(const std_msgs::Bool & msg){
-  //shield_->setForceUnsafe(msg.data);
+  shield_->setForceUnsafe(msg.data);
 }
 
-
+//TODO: implement in sara_shield
 void SaraShieldRosNode::humansInSceneCallback(const std_msgs::Bool& msg) {
   //if (!msg.data) {
   //  shield_->noHumanInTheScene();
@@ -145,10 +142,12 @@ void SaraShieldRosNode::visualizeRobotAndHuman(){
   visualization_msgs::MarkerArray robotMarkerArray = visualization_msgs::MarkerArray();
 
   // visualization of robot and human capsules
+  /* TODO: fix
   std::vector<std::vector<double>> humanCapsules = shield_->getHumanReachCapsules(1);
   createPoints(humanMarkerArray, 3 * humanCapsules.size(),
                visualization_msgs::Marker::CYLINDER, 2);
   createCapsules(humanMarkerArray, humanCapsules);
+  */
 
   std::vector<std::vector<double>> robotReachCapsules = shield_->getRobotReachCapsules();
   
@@ -165,7 +164,7 @@ void SaraShieldRosNode::createPoints(visualization_msgs::MarkerArray& markers, i
   int prev_size = markers.markers.size();
   for(int i = 0; i < nb_points_to_add; i++) {
     visualization_msgs::Marker marker;
-    marker.header.frame_id="base_link";
+    marker.header.frame_id="panda_link0";
     marker.ns = "shapes";
     marker.id = prev_size+i;
     marker.type = shape_type;

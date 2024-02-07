@@ -26,11 +26,10 @@ find_package(catkin REQUIRED COMPONENTS
   franka_gazebo
 )
 
-set(safety_shield_DIR /usr/local/lib/cmake/safety_shield)
-# set(safety_shield_DIR /home/user/sara-shield/safety_shield/build)
+# when sara-shield is only build locally, use the next line, otherwise comment out
+set(safety_shield_DIR /home/user/sara-shield/safety_shield/build)
 
 find_package(Eigen3 REQUIRED)
-# find_package(SaRA REQUIRED)
 find_package(safety_shield REQUIRED)
 find_package(Franka 0.9.0 QUIET)
 if(NOT Franka_FOUND)
