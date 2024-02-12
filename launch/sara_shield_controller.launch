@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="robot" default="panda" doc="choose your robot. Possible values: [panda, fr3]"/>
+  <arg name="arm_id" default="$(arg robot)" />
+  <arg name="rviz"        default="true" doc="Should RVIz be launched?" />
+
+  
+  <include file="$(find franka_control)/launch/franka_control.launch" pass_all_args="true"/>
+  <rosparam command="load" file="$(find franka_sara_shield_controller)/config/franka_sara_shield_controller.yaml" subst_value="true" />
+  
+  <node name="sara_shield_node" pkg="franka_sara_shield_controller" type="sara_shield_node" />
+
+  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen"  args="sara_shield_controller"/>
+  
+  <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find franka_sara_shield_controller)/rviz/franka_sara_shield.rviz -f $(arg arm_id)_link0 --splash-screen $(find franka_visualization)/splash.png" if="$(arg rviz)"/>
+
+</launch>

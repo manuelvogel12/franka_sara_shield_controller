@@ -1,4 +1,4 @@
-#include <franka_sara_shield_controller/sara_shield_controller.h>
+#include <franka_sara_shield_controller/sara_shield_impedance_controller.h>
 
 #include <cmath>
 
@@ -10,21 +10,21 @@
 
 namespace franka_sara_shield_controller {
 
-// SaraShieldController::SaraShieldController(){}
+// SaraShieldImpedanceController::SaraShieldImpedanceController(){}
 
-bool SaraShieldController::init(hardware_interface::RobotHW* robot_hardware,
+bool SaraShieldImpedanceController::init(hardware_interface::RobotHW* robot_hardware,
                                           ros::NodeHandle& node_handle) {
   position_joint_interface_ = robot_hardware->get<hardware_interface::PositionJointInterface>();
   if (position_joint_interface_ == nullptr) {
-    ROS_ERROR("SaraShieldController: Error getting position joint interface from hardware!");
+    ROS_ERROR("SaraShieldImpedanceController: Error getting position joint interface from hardware!");
     return false;
   }
   std::vector<std::string> joint_names;
   if (!node_handle.getParam("joint_names", joint_names)) {
-    ROS_ERROR("SaraShieldController: Could not parse joint names");
+    ROS_ERROR("SaraShieldImpedanceController: Could not parse joint names");
   }
   if (joint_names.size() != 7) {
-    ROS_ERROR_STREAM("SaraShieldController: Wrong number of joint names, got "
+    ROS_ERROR_STREAM("SaraShieldImpedanceController: Wrong number of joint names, got "
                      << joint_names.size() << " instead of 7 names!");
     return false;
   }
@@ -34,7 +34,7 @@ bool SaraShieldController::init(hardware_interface::RobotHW* robot_hardware,
       position_joint_handles_[i] = position_joint_interface_->getHandle(joint_names[i]);
     } catch (const hardware_interface::HardwareInterfaceException& e) {
       ROS_ERROR_STREAM(
-          "SaraShieldController: Exception getting joint handles: " << e.what());
+          "SaraShieldImpedanceController: Exception getting joint handles: " << e.what());
       return false;
     }
   }
@@ -43,20 +43,20 @@ bool SaraShieldController::init(hardware_interface::RobotHW* robot_hardware,
   for (size_t i = 0; i < q_start.size(); i++) {
     if (std::abs(position_joint_handles_[i].getPosition() - q_start[i]) > 0.1) {
       ROS_ERROR_STREAM(
-          "SaraShieldController: Robot is not in the expected starting position for "
+          "SaraShieldImpedanceController: Robot is not in the expected starting position for "
           "running this example. Run `roslaunch franka_sara_shield_controller move_to_start.launch "
           "robot_ip:=<robot-ip> load_gripper:=<has-attached-gripper>` first.");
       return false;
     }
   }*/
-  joint_pos_sub_ = nh.subscribe("/sara_shield/joint_pos_output", 100, & SaraShieldController::jointPosCallback, this);
+  joint_pos_sub_ = nh.subscribe("/sara_shield/joint_pos_output", 100, & SaraShieldImpedanceController::jointPosCallback, this);
   observed_joint_pos_pub_ = nh.advertise<std_msgs::Float32MultiArray>("/sara_shield/current_joint_pos", 100);
 
   return true;
 }
 
 
-void SaraShieldController::starting(const ros::Time& /* time */) {
+void SaraShieldImpedanceController::starting(const ros::Time& /* time */) {
   for (size_t i = 0; i < 7; ++i) {
     q_[i] = position_joint_handles_[i].getPosition();
   }
@@ -64,7 +64,7 @@ void SaraShieldController::starting(const ros::Time& /* time */) {
 }
 
 
-void SaraShieldController::update(const ros::Time& /*time*/,
+void SaraShieldImpedanceController::update(const ros::Time& /*time*/,
                                             const ros::Duration& period) {
   // elapsed_time_ += period;
 
@@ -85,7 +85,7 @@ void SaraShieldController::update(const ros::Time& /*time*/,
 
 }
 
-void SaraShieldController::jointPosCallback(const std_msgs::Float64MultiArray& msg){
+void SaraShieldImpedanceController::jointPosCallback(const std_msgs::Float64MultiArray& msg){
   q_ = msg.data;
 }
 
@@ -93,5 +93,5 @@ void SaraShieldController::jointPosCallback(const std_msgs::Float64MultiArray& m
 
 }  // namespace franka_sara_shield_controller
 
-PLUGINLIB_EXPORT_CLASS(franka_sara_shield_controller::SaraShieldController,
+PLUGINLIB_EXPORT_CLASS(franka_sara_shield_controller::SaraShieldImpedanceController,
                        controller_interface::ControllerBase)

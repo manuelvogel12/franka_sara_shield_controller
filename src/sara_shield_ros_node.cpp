@@ -21,9 +21,9 @@ SaraShieldRosNode::SaraShieldRosNode():
   double sample_time = 0.004;
   // TODO: MAKE DYNAMIC!
   std::string config_folder = std::getenv("SARA_SHIELD_CONFIG_PATH");
-  std::string trajectory_config_file = config_folder + "trajectory_parameters_panda.yaml";
-  std::string robot_config_file = config_folder + "robot_parameters_panda.yaml";
-  std::string mocap_config_file = config_folder + "cmu_mocap_no_hand.yaml";
+  std::string trajectory_config_file = config_folder + "/trajectory_parameters_panda.yaml";
+  std::string robot_config_file = config_folder + "/robot_parameters_panda.yaml";
+  std::string mocap_config_file = config_folder + "/cmu_mocap_no_hand.yaml";
   double init_x = 0.0;
   double init_y = 0.0;
   double init_z = 0.0;

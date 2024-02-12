@@ -75,6 +75,7 @@ catkin_package(
 
 add_library(franka_sara_shield_controller
   src/sara_shield_controller.cpp
+  src/sara_shield_impedance_controller.cpp
 )
 
 add_dependencies(franka_sara_shield_controller

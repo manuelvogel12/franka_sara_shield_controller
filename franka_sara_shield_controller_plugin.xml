@@ -4,4 +4,9 @@
       Sara shield controller for panda
     </description>
    </class>
+   <class name="franka_sara_shield_controller/SaraShieldImpedanceController" type="franka_sara_shield_controller::SaraShieldImpedanceController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      Sara shield controller for panda
+    </description>
+   </class>
 </library>
