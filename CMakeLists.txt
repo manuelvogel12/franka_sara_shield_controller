@@ -31,6 +31,7 @@ set(safety_shield_DIR /home/user/sara-shield/safety_shield/build)
 
 find_package(Eigen3 REQUIRED)
 find_package(safety_shield REQUIRED)
+find_package(SaRA REQUIRED)
 find_package(Franka 0.9.0 QUIET)
 if(NOT Franka_FOUND)
   find_package(Franka 0.8.0 REQUIRED)
