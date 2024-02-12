@@ -19,17 +19,18 @@ SaraShieldRosNode::SaraShieldRosNode():
 {
     // safety shield values
   double sample_time = 0.004;
-  std::string folder = "/home/user/catkin_ws/src/franka_sara_shield_controller/config/";
-  std::string trajectory_config_file = folder + "trajectory_parameters_panda.yaml";
-  std::string robot_config_file = folder + "robot_parameters_panda.yaml";
-  std::string mocap_config_file = folder + "cmu_mocap_no_hand.yaml";
+
+  std::string config_folder = std::getenv("SARA_SHIELD_CONFIG_PATH");
+  std::string trajectory_config_file = config_folder + "trajectory_parameters_panda.yaml";
+  std::string robot_config_file = config_folder + "robot_parameters_panda.yaml";
+  std::string mocap_config_file = config_folder + "cmu_mocap_no_hand.yaml";
   double init_x = 0.0;
   double init_y = 0.0;
   double init_z = 0.0;
   double init_roll = 0.0;
   double init_pitch = 0.0;
   double init_yaw = 0.0;
-  std::vector<double> init_qpos = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  std::vector<double> init_qpos = {0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4};
 
   // safety shield init
   shield_ = new safety_shield::SafetyShield(

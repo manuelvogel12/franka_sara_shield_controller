@@ -5,6 +5,7 @@
 #include <array>
 #include <string>
 #include <vector>
+#include <cstdlib>
 
 #include <ros/node_handle.h>
 #include <ros/time.h>
