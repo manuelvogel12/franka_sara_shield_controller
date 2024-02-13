@@ -13,6 +13,7 @@
 #include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/Bool.h>
 #include <geometry_msgs/Point.h>
+#include <sensor_msgs/JointState.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include "safety_shield/safety_shield.h"
@@ -43,7 +44,7 @@ class SaraShieldRosNode {
   ros::Subscriber robot_current_pos_sub_;
   ros::Publisher robot_marker_pub_;
   ros::Publisher sara_shield_safe_pub_;
-  ros::Publisher joint_pos_pub_;
+  ros::Publisher desired_joint_state_pub_;
   
   void createPoints(visualization_msgs::MarkerArray& markers, int nb_points_to_add, int shape_type, int color_type);
   void createCapsules(visualization_msgs::MarkerArray& markers, const std::vector<std::vector<double>>& capsules);

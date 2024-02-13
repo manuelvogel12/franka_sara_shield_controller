@@ -13,6 +13,7 @@
 #include <ros/time.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/Float64MultiArray.h>
+#include <sensor_msgs/JointState.h>
 
 namespace franka_sara_shield_controller {
 
@@ -29,14 +30,15 @@ class SaraShieldController : public controller_interface::MultiInterfaceControll
   std::vector<hardware_interface::JointHandle> position_joint_handles_;
   // ros::Duration elapsed_time_;
 
-  std::vector<double> q_{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  std::vector<double> q_d_{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  std::vector<double> dq_d_{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
   ros::NodeHandle nh;
-  ros::Subscriber joint_pos_sub_;
+  ros::Subscriber desired_joint_state_sub_;
   ros::Publisher observed_joint_pos_pub_;
   
   // callbacks
-  void jointPosCallback(const std_msgs::Float64MultiArray& msg);
+  void desiredJointStateCallback(const sensor_msgs::JointState& msg);
 };
 
 }  // namespace franka_sara_shield_controller

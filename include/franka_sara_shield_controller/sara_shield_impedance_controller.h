@@ -17,6 +17,7 @@
 
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/Float64MultiArray.h>
+#include <sensor_msgs/JointState.h>
 
 #include <franka_example_controllers/JointTorqueComparison.h>
 #include <franka_hw/franka_state_interface.h>
@@ -48,18 +49,19 @@ class SaraShieldImpedanceController : public controller_interface::MultiInterfac
   double coriolis_factor_{1.0};
   std::array<double, 7> dq_filtered_;
   std::array<double, 16> initial_pose_;
-  std::vector<double> q_{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  std::vector<double> q_d_{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  std::vector<double> dq_d_{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
   franka_hw::TriggerRate rate_trigger_{1.0};
   std::array<double, 7> last_tau_d_{};
   realtime_tools::RealtimePublisher<franka_example_controllers::JointTorqueComparison> torques_publisher_;
 
   ros::NodeHandle nh;
-  ros::Subscriber joint_pos_sub_;
+  ros::Subscriber desired_joint_state_sub_;
   ros::Publisher observed_joint_pos_pub_;
   
   // callbacks
-  void jointPosCallback(const std_msgs::Float64MultiArray& msg);
+  void desiredJointStateCallback(const sensor_msgs::JointState& msg);
 
   // helper
   std::array<double, 7> saturateTorqueRate(

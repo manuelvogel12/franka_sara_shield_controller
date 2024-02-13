@@ -8,6 +8,7 @@
 #include <pluginlib/class_list_macros.h>
 #include <ros/ros.h>
 #include <franka/robot_state.h>
+#include <franka/rate_limiting.h>
 
 namespace franka_sara_shield_controller {
 
@@ -67,7 +68,7 @@ bool SaraShieldImpedanceController::init(hardware_interface::RobotHW* robot_hard
   }
   try {
     state_handle_ = std::make_unique<franka_hw::FrankaStateHandle>(
-        state_interface->getHandle(arm_id + "_state"));
+        state_interface->getHandle(arm_id + "_robot"));
   } catch (hardware_interface::HardwareInterfaceException& ex) {
     ROS_ERROR_STREAM(
         "SaraShieldImpedanceController: Exception getting state handle from interface: "
@@ -111,8 +112,8 @@ bool SaraShieldImpedanceController::init(hardware_interface::RobotHW* robot_hard
 
   std::fill(dq_filtered_.begin(), dq_filtered_.end(), 0);
 
-  joint_pos_sub_ = nh.subscribe("/sara_shield/joint_pos_output", 100, & SaraShieldImpedanceController::jointPosCallback, this);
-  observed_joint_pos_pub_ = nh.advertise<std_msgs::Float32MultiArray>("/sara_shield/current_joint_pos", 100);
+  desired_joint_state_sub_ = nh.subscribe("/sara_shield/desired_joint_state", 100, & SaraShieldImpedanceController::desiredJointStateCallback, this);
+  observed_joint_pos_pub_ = nh.advertise<std_msgs::Float32MultiArray>("/sara_shield/observed_joint_pos", 100);
 
   return true;
 }
@@ -120,7 +121,7 @@ bool SaraShieldImpedanceController::init(hardware_interface::RobotHW* robot_hard
 
 void SaraShieldImpedanceController::starting(const ros::Time& /* time */) {
   franka::RobotState robot_state = state_handle_->getRobotState();
-  q_.insert(q_.begin(), std::begin(robot_state.q), std::end(robot_state.q));
+  q_d_.insert(q_d_.begin(), std::begin(robot_state.q), std::end(robot_state.q));
 }
 
 
@@ -138,16 +139,18 @@ void SaraShieldImpedanceController::update(const ros::Time& /*time*/,
   std::array<double, 7> tau_d_calculated;
   for (size_t i = 0; i < 7; ++i) {
     tau_d_calculated[i] = coriolis_factor_ * coriolis[i] +
-                          k_gains_[i] * (q_[i] - robot_state.q[i]) +
-                          d_gains_[i] * (robot_state.dq_d[i] - dq_filtered_[i]);
+                          k_gains_[i] * (q_d_[i] - robot_state.q[i]) +
+                          d_gains_[i] * (dq_d_[i] - dq_filtered_[i]);
   }
 
   // Maximum torque difference with a sampling rate of 1 kHz. The maximum torque rate is
   // 1000 * (1 / sampling_time).
-  std::array<double, 7> tau_d_saturated = saturateTorqueRate(tau_d_calculated, robot_state.tau_J_d);
+  // std::array<double, 7> tau_d_saturated = saturateTorqueRate(tau_d_calculated, robot_state.tau_J_d);
+  std::array<double, 7> tau_d_rate_limited =
+          franka::limitRate(franka::kMaxTorqueRate, tau_d_calculated, robot_state.tau_J_d);
 
   for (size_t i = 0; i < 7; ++i) {
-    joint_handles_[i].setCommand(tau_d_saturated[i]);
+    joint_handles_[i].setCommand(tau_d_rate_limited[i]);
   }
 
   if (rate_trigger_() && torques_publisher_.trylock()) {
@@ -168,7 +171,7 @@ void SaraShieldImpedanceController::update(const ros::Time& /*time*/,
   }
 
   for (size_t i = 0; i < 7; ++i) {
-    last_tau_d_[i] = tau_d_saturated[i] + gravity[i];
+    last_tau_d_[i] = tau_d_calculated[i] + gravity[i];
   }
 
   // observe joint pose
@@ -178,8 +181,9 @@ void SaraShieldImpedanceController::update(const ros::Time& /*time*/,
   observed_joint_pos_pub_.publish(pos_msg);
 }
 
-void SaraShieldImpedanceController::jointPosCallback(const std_msgs::Float64MultiArray& msg){
-  q_ = msg.data;
+void SaraShieldImpedanceController::desiredJointStateCallback(const sensor_msgs::JointState& msg){
+  q_d_ = msg.position;
+  dq_d_ = msg.velocity;
 }
 
 std::array<double, 7> SaraShieldImpedanceController::saturateTorqueRate(

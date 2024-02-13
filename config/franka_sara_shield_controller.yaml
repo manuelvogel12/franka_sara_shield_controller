@@ -20,20 +20,20 @@ sara_shield_impedance_controller:
         - $(arg arm_id)_joint6
         - $(arg arm_id)_joint7
     k_gains:
-        - 600.0
-        - 600.0
-        - 600.0
-        - 600.0
-        - 250.0
-        - 150.0
+        - 300.00
+        - 300.00
+        - 300.00
+        - 300.00
+        - 100.00
+        - 50.0
         - 50.0
     d_gains:
-        - 50.0
-        - 50.0
-        - 50.0
-        - 20.0
-        - 20.0
-        - 20.0
-        - 10.0
-    publish_rate: 250.0
+        - 60.00
+        - 60.00
+        - 60.00
+        - 60.00
+        - 10.00
+        - 5.0
+        - 5.0
+    publish_rate: 500.0
     coriolis_factor: 1.0

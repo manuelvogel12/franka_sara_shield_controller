@@ -10,11 +10,11 @@ SaraShieldRosNode::SaraShieldRosNode():
     force_safe_sub_(nh.subscribe("/sara_shield/force_safe", 100, & SaraShieldRosNode::forceSafeCallback, this)),
     force_unsafe_sub_(nh.subscribe("/sara_shield/force_unsafe", 100, & SaraShieldRosNode::forceUnsafeCallback, this)),
     humans_in_scene_sub_(nh.subscribe("/sara_shield/humans_in_scene", 100, &SaraShieldRosNode::humansInSceneCallback, this)),
-    robot_current_pos_sub_(nh.subscribe("/sara_shield/current_joint_pos", 100, &SaraShieldRosNode::observeRobotJointCallback, this)),
+    robot_current_pos_sub_(nh.subscribe("/sara_shield/observed_joint_pos", 100, &SaraShieldRosNode::observeRobotJointCallback, this)),
     human_marker_pub_(nh.advertise<visualization_msgs::MarkerArray>("/sara_shield/human_joint_marker_array", 100)),
     robot_marker_pub_(nh.advertise<visualization_msgs::MarkerArray>("/sara_shield/robot_joint_marker_array", 100)),
     sara_shield_safe_pub_(nh.advertise<std_msgs::Bool>("/sara_shield/is_safe", 100)),
-    joint_pos_pub_(nh.advertise<std_msgs::Float64MultiArray>("/sara_shield/joint_pos_output", 100)),
+    desired_joint_state_pub_(nh.advertise<sensor_msgs::JointState>("/sara_shield/desired_joint_state", 100)),
     timer_(nh.createTimer(ros::Duration(0.004), &SaraShieldRosNode::main_loop, this))
 {
     // safety shield values
@@ -70,17 +70,12 @@ void SaraShieldRosNode::main_loop(const ros::TimerEvent &){
 
         // Perform a sara shield update step
         safety_shield::Motion next_motion = shield_->step(ros::Time::now().toSec());
-        //std::cout<<"time"<<ros::Time::now().toSec()<<std::endl;
-        std::vector<double> q = next_motion.getAngle();
-        //for(double qi:q){
-        //  std::cout<<qi<<" ";
-        //}
-        //std::cout<<std::endl;
-
-        // send out the message
-        std_msgs::Float64MultiArray joint_pos_output_msg;
-        joint_pos_output_msg.data = q;
-        joint_pos_pub_.publish(joint_pos_output_msg);
+        // Send out the message
+        sensor_msgs::JointState desired_joint_state_msg;
+        desired_joint_state_msg.header.stamp = ros::Time::now();
+        desired_joint_state_msg.position = next_motion.getAngle();
+        desired_joint_state_msg.velocity = next_motion.getVelocity();
+        desired_joint_state_pub_.publish(desired_joint_state_msg);
 
         if(!shield_->getSafety()){
             ROS_ERROR("NOT SAFE");

@@ -70,8 +70,10 @@ catkin_package(
     urdf
     visualization_msgs
     franka_gazebo
+    sensor_msgs
   DEPENDS Franka
 )
+
 
 add_library(franka_sara_shield_controller
   src/sara_shield_controller.cpp

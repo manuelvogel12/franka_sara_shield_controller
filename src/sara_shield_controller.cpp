@@ -49,8 +49,8 @@ bool SaraShieldController::init(hardware_interface::RobotHW* robot_hardware,
       return false;
     }
   }*/
-  joint_pos_sub_ = nh.subscribe("/sara_shield/joint_pos_output", 100, & SaraShieldController::jointPosCallback, this);
-  observed_joint_pos_pub_ = nh.advertise<std_msgs::Float32MultiArray>("/sara_shield/current_joint_pos", 100);
+  desired_joint_state_sub_ = nh.subscribe("/sara_shield/desired_joint_state", 100, & SaraShieldController::desiredJointStateCallback, this);
+  observed_joint_pos_pub_ = nh.advertise<std_msgs::Float32MultiArray>("/sara_shield/observed_joint_pos", 100);
 
   return true;
 }
@@ -58,7 +58,8 @@ bool SaraShieldController::init(hardware_interface::RobotHW* robot_hardware,
 
 void SaraShieldController::starting(const ros::Time& /* time */) {
   for (size_t i = 0; i < 7; ++i) {
-    q_[i] = position_joint_handles_[i].getPosition();
+    q_d_[i] = position_joint_handles_[i].getPosition();
+    dq_d_[i] = 0.0;
   }
   // elapsed_time_ = ros::Duration(0.0);
 }
@@ -70,7 +71,7 @@ void SaraShieldController::update(const ros::Time& /*time*/,
 
   // set joint pos
   for (size_t i = 0; i < 7; ++i) {
-      position_joint_handles_[i].setCommand(q_[i]);
+      position_joint_handles_[i].setCommand(q_d_[i]);
   }
 
   // observe joint pose
@@ -85,10 +86,10 @@ void SaraShieldController::update(const ros::Time& /*time*/,
 
 }
 
-void SaraShieldController::jointPosCallback(const std_msgs::Float64MultiArray& msg){
-  q_ = msg.data;
+void SaraShieldController::desiredJointStateCallback(const sensor_msgs::JointState& msg){
+  q_d_ = msg.position;
+  dq_d_ = msg.velocity;
 }
-
 
 
 }  // namespace franka_sara_shield_controller
