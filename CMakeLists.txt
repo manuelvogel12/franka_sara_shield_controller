@@ -127,6 +127,30 @@ target_include_directories(sara_shield_node PUBLIC
   include
 )
 
+add_executable(motion_node
+  src/motion_node.cpp
+)
+
+add_dependencies(motion_node
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+  safety_shield
+  ${PROJECT_NAME}_gencfg
+)
+
+target_link_libraries(motion_node PUBLIC
+  ${catkin_LIBRARIES}
+  safety_shield
+)
+
+target_include_directories(motion_node SYSTEM PUBLIC
+  ${catkin_INCLUDE_DIRS}
+)
+
+target_include_directories(motion_node PUBLIC
+  include
+)
+
 #add_executable(teleop_gripper_node
 #  src/teleop_gripper_node.cpp
 #)

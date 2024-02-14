@@ -1,0 +1,85 @@
+# cutains information
+measurement_error_pos: 0.001
+measurement_error_vel: 0.1
+delay: 0.05
+use_kalman_filter: true
+s_w: 2.0e+2
+s_v: 1.0e-6
+initial_pos_var: 0.0001
+initial_vel_var: 0.5
+
+use_combined_model: true
+
+# Names of joints in correct outputted order
+joint_names: [
+  "head", "clav", "torso",
+  "left_hand", "left_elbow", "left_shoulder",
+  "right_hand", "right_elbow", "right_shoulder"
+]
+
+joint_v_max: [
+  2, 2, 2,
+  2, 2, 2,
+  2, 2, 2
+]
+
+joint_a_max: [
+  20, 20, 20,
+  50, 50, 50,
+  50, 50, 50
+]
+# All values are in the 95% Quantiles defined in DIN 33402-2
+# There are no values about arm circumfence, so we take the leg values as overapproximation.
+bodies:
+  - name: "left_upper_arm" 
+    proximal: "left_shoulder"
+    distal: "left_elbow"
+    thickness: 0.2
+
+  - name: "left_lower_arm"
+    proximal: "left_elbow"
+    distal: "left_hand"
+    thickness: 0.132
+
+  - name: "left_hand"
+    proximal: "left_hand"
+    distal: "left_hand"
+    thickness: 0.206
+
+  - name: "right_upper_arm" 
+    proximal: "right_shoulder"
+    distal: "right_elbow"
+    thickness: 0.2
+
+  - name: "right_lower_arm"
+    proximal: "right_elbow"
+    distal: "right_hand"
+    thickness: 0.132
+
+  - name: "right_hand"
+    proximal: "right_hand"
+    distal: "right_hand"
+    thickness: 0.206
+
+  - name: "torso"
+    proximal: "clav"
+    distal: "torso"
+    thickness: 0.434
+  
+  - name: "head"
+    proximal: "head"
+    distal: "head"
+    thickness: 0.434
+
+extremities:
+  - name: "left_arm"
+    base: "left_shoulder"
+    end: "left_hand"
+    length: 1.0 # See Tabelle 21 — Reichweite nach vorn (Griffachse) - Half a hand length.
+    thickness: 0.0
+    
+  - name: "right_arm"
+    base: "right_shoulder"
+    end: "right_hand"
+    length: 1.0 # See Tabelle 21 — Reichweite nach vorn (Griffachse) - Half a hand length.
+    thickness: 0.0

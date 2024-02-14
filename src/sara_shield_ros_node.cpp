@@ -17,48 +17,71 @@ SaraShieldRosNode::SaraShieldRosNode():
     desired_joint_state_pub_(nh.advertise<sensor_msgs::JointState>("/sara_shield/desired_joint_state", 100)),
     timer_(nh.createTimer(ros::Duration(0.004), &SaraShieldRosNode::main_loop, this))
 {
+  ROS_WARN("Creating SaRA shield node.");
     // safety shield values
   double sample_time = 0.004;
-  // TODO: MAKE DYNAMIC!
   std::string config_folder = std::getenv("SARA_SHIELD_CONFIG_PATH");
   std::string trajectory_config_file = config_folder + "/trajectory_parameters_panda.yaml";
   std::string robot_config_file = config_folder + "/robot_parameters_panda.yaml";
-  std::string mocap_config_file = config_folder + "/cmu_mocap_no_hand.yaml";
-  double init_x = 0.0;
-  double init_y = 0.0;
-  double init_z = 0.0;
-  double init_roll = 0.0;
-  double init_pitch = 0.0;
-  double init_yaw = 0.0;
+  std::string mocap_config_file = config_folder + "/asl_lab_mocap.yaml";
+  ROS_WARN("Geting init params.");
+  nh.getParam("/panda/init_x", init_x_);
+  nh.getParam("/panda/init_y", init_y_);
+  nh.getParam("/panda/init_z", init_z_);
+  nh.getParam("/panda/init_roll", init_roll_);
+  nh.getParam("/panda/init_pitch", init_pitch_);
+  nh.getParam("/panda/init_yaw", init_yaw_);
+  nh.getParam("/franka_control/arm_id", arm_id_);
   std::vector<double> init_qpos = {0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4};
-
+  ROS_WARN_STREAM("Building SaRA shield with params: init pos = [" <<
+    std::to_string(init_x_) << ", " <<
+    std::to_string(init_y_) << ", " <<
+    std::to_string(init_z_) << "], init roll, pitch, yaw = [" <<
+    std::to_string(init_roll_) << ", " <<
+    std::to_string(init_pitch_) << ", " <<
+    std::to_string(init_yaw_) << "]."
+  );
+  sendBaseTransform();
   // safety shield init
+  // Right now, the roll and yaw rotation are confused in the safety shield. This will be fixed in the future.
   shield_ = new safety_shield::SafetyShield(
     sample_time,
     trajectory_config_file,
     robot_config_file,
     mocap_config_file,
-    init_x,
-    init_y,
-    init_z,
-    init_roll,
-    init_pitch,
-    init_yaw,
+    init_x_,
+    init_y_,
+    init_z_,
+    init_yaw_,
+    init_pitch_,
+    init_roll_,
     init_qpos);
-
-  // Dummy human measurement
-  human_meas_.resize(21);
-  for (int i=0; i<21; i++) {
+  ROS_WARN("Initializing SaRA shield subscribers.");
+  // Human measurement
+  int n_meas = sizeof(human_pose_sub_array_);
+  human_meas_.resize(n_meas);
+  human_pose_sub_array_[0] = nh.subscribe("/vrpn_client_node/human/head/pose", 240, & SaraShieldRosNode::humanPoseCallbackHead, this);
+  human_pose_sub_array_[1] = nh.subscribe("/vrpn_client_node/human/clav/pose", 240, & SaraShieldRosNode::humanPoseCallbackClav, this);
+  human_pose_sub_array_[2] = nh.subscribe("/vrpn_client_node/human/torso/pose", 240, & SaraShieldRosNode::humanPoseCallbackTorso, this);
+  human_pose_sub_array_[3] = nh.subscribe("/vrpn_client_node/human/left_hand/pose", 240, & SaraShieldRosNode::humanPoseCallbackLeftHand, this);
+  human_pose_sub_array_[4] = nh.subscribe("/vrpn_client_node/human/left_elbow/pose", 240, & SaraShieldRosNode::humanPoseCallbackLeftElbow, this);
+  human_pose_sub_array_[5] = nh.subscribe("/vrpn_client_node/human/left_shoulder/pose", 240, & SaraShieldRosNode::humanPoseCallbackLeftShoulder, this);
+  human_pose_sub_array_[6] = nh.subscribe("/vrpn_client_node/human/right_hand/pose", 240, & SaraShieldRosNode::humanPoseCallbackRightHand, this);
+  human_pose_sub_array_[7] = nh.subscribe("/vrpn_client_node/human/right_elbow/pose", 240, & SaraShieldRosNode::humanPoseCallbackRightElbow, this);
+  human_pose_sub_array_[8] = nh.subscribe("/vrpn_client_node/human/right_shoulder/pose", 240, & SaraShieldRosNode::humanPoseCallbackRightShoulder, this);
+  
+  for (int i=0; i<n_meas; i++) {
     human_meas_[i] = std::vector<double>{1200, 1200, 0};
   }
-
+  last_human_meas_time_ = ros::Time::now();
+  ROS_WARN("SaRA shield initialized.");
 }
 
 void SaraShieldRosNode::main_loop(const ros::TimerEvent &){
 
     if(init_)
     {
-        shield_->humanMeasurement(human_meas_, ros::Time::now().toSec());
+        shield_->humanMeasurement(human_meas_, last_human_meas_time_.toSec());
 
         // check if a new goal pose is set. If so, give a new LongTermTrajectory to sara shield
         if(new_goal_){
@@ -82,8 +105,9 @@ void SaraShieldRosNode::main_loop(const ros::TimerEvent &){
         }
 
         // visualize human every 100 iterations
-        if(update_iteration_++ == 10){
+        if(update_iteration_++ == visualize_every_){
             update_iteration_ = 0;
+            sendBaseTransform();
             visualizeRobotAndHuman();
         }
 
@@ -108,12 +132,20 @@ void SaraShieldRosNode::observeRobotJointCallback(const std_msgs::Float32MultiAr
 {
   if(!init_){
     std::vector<double> initial_pose_vec(msg.data.begin(), msg.data.end());
-    shield_->reset(0, 0, 0, 0, 0, 0, initial_pose_vec, ros::Time::now().toSec());
+    // Right now, the roll and yaw rotation are confused in the safety shield. This will be fixed in the future.
+    shield_->reset(
+      init_x_,
+      init_y_,
+      init_z_,
+      init_yaw_,
+      init_pitch_,
+      init_roll_,
+      initial_pose_vec,
+      ros::Time::now().toSec()
+    );
     init_ = true;
   }
-
 }
-
 
 void SaraShieldRosNode::forceSafeCallback(const std_msgs::Bool & msg){
   shield_->setForceSafe(msg.data);
@@ -131,6 +163,15 @@ void SaraShieldRosNode::humansInSceneCallback(const std_msgs::Bool& msg) {
 }
 
 // VISUALIZATION
+void SaraShieldRosNode::sendBaseTransform(){
+  static tf::TransformBroadcaster br;
+  tf::Transform transform;
+  transform.setOrigin( tf::Vector3(init_x_, init_y_, init_z_) );
+  tf::Quaternion q;
+  q.setRPY(init_roll_, init_pitch_, init_yaw_);
+  transform.setRotation(q);
+  br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", arm_id_ + base_id_));
+}
 
 void SaraShieldRosNode::visualizeRobotAndHuman(){
   // visualize the robot and human
@@ -138,12 +179,10 @@ void SaraShieldRosNode::visualizeRobotAndHuman(){
   visualization_msgs::MarkerArray robotMarkerArray = visualization_msgs::MarkerArray();
 
   // visualization of robot and human capsules
-  /* TODO: fix
-  std::vector<std::vector<double>> humanCapsules = shield_->getHumanReachCapsules(1);
+  std::vector<std::vector<double>> humanCapsules = shield_->getHumanReachCapsules(0);
   createPoints(humanMarkerArray, 3 * humanCapsules.size(),
                visualization_msgs::Marker::CYLINDER, 2);
   createCapsules(humanMarkerArray, humanCapsules);
-  */
 
   std::vector<std::vector<double>> robotReachCapsules = shield_->getRobotReachCapsules();
   
@@ -160,7 +199,7 @@ void SaraShieldRosNode::createPoints(visualization_msgs::MarkerArray& markers, i
   int prev_size = markers.markers.size();
   for(int i = 0; i < nb_points_to_add; i++) {
     visualization_msgs::Marker marker;
-    marker.header.frame_id="panda_link0";
+    marker.header.frame_id = "world";
     marker.ns = "shapes";
     marker.id = prev_size+i;
     marker.type = shape_type;
@@ -263,6 +302,35 @@ void SaraShieldRosNode::createCylinder(const geometry_msgs::Point& p1, const geo
     marker.scale.z = 0;
   }
   marker.header.stamp = stamp;
+}
+
+void SaraShieldRosNode::humanPoseCallbackHead(const geometry_msgs::PoseStamped& msg) {
+  human_meas_[0] = std::vector<double>{msg.pose.position.x, msg.pose.position.y, msg.pose.position.z};
+  last_human_meas_time_ = ros::Time::now();
+}
+void SaraShieldRosNode::humanPoseCallbackClav(const geometry_msgs::PoseStamped& msg) {
+  human_meas_[1] = std::vector<double>{msg.pose.position.x, msg.pose.position.y, msg.pose.position.z};
+}
+void SaraShieldRosNode::humanPoseCallbackTorso(const geometry_msgs::PoseStamped& msg) {
+  human_meas_[2] = std::vector<double>{msg.pose.position.x, msg.pose.position.y, msg.pose.position.z};
+}
+void SaraShieldRosNode::humanPoseCallbackLeftHand(const geometry_msgs::PoseStamped& msg) {
+  human_meas_[3] = std::vector<double>{msg.pose.position.x, msg.pose.position.y, msg.pose.position.z};
+}
+void SaraShieldRosNode::humanPoseCallbackLeftElbow(const geometry_msgs::PoseStamped& msg) {
+  human_meas_[4] = std::vector<double>{msg.pose.position.x, msg.pose.position.y, msg.pose.position.z};
+}
+void SaraShieldRosNode::humanPoseCallbackLeftShoulder(const geometry_msgs::PoseStamped& msg) {
+  human_meas_[5] = std::vector<double>{msg.pose.position.x, msg.pose.position.y, msg.pose.position.z};
+}
+void SaraShieldRosNode::humanPoseCallbackRightHand(const geometry_msgs::PoseStamped& msg) {
+  human_meas_[6] = std::vector<double>{msg.pose.position.x, msg.pose.position.y, msg.pose.position.z};
+}
+void SaraShieldRosNode::humanPoseCallbackRightElbow(const geometry_msgs::PoseStamped& msg) {
+  human_meas_[7] = std::vector<double>{msg.pose.position.x, msg.pose.position.y, msg.pose.position.z};
+}
+void SaraShieldRosNode::humanPoseCallbackRightShoulder(const geometry_msgs::PoseStamped& msg) {
+  human_meas_[8] = std::vector<double>{msg.pose.position.x, msg.pose.position.y, msg.pose.position.z};
 }
 
 } // end namespace

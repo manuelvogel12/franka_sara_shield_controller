@@ -1,0 +1,4 @@
+<?xml version="1.0" ?>
+<launch>
+  <node name="motion_node" pkg="franka_sara_shield_controller" type="motion_node" />
+</launch>

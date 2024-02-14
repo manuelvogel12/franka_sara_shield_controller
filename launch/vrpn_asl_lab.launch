@@ -19,7 +19,13 @@
       trackers:
        - human/head
        - human/left_hand
-      #- SecondTracker
+       - human/left_elbow
+       - human/left_shoulder
+       - human/clav
+       - human/torso
+       - human/right_shoulder
+       - human/right_elbow
+       - human/right_hand
     </rosparam>
   </node>
 
