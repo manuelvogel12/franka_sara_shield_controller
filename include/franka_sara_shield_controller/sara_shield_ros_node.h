@@ -29,6 +29,7 @@ class SaraShieldRosNode {
 
  private:
   safety_shield::SafetyShield* shield_;
+  safety_shield::ShieldType shield_type_= safety_shield::ShieldType::SSM;
 
   std::string arm_id_ = "panda";
   std::string base_id_ = "_link0";
@@ -61,6 +62,7 @@ class SaraShieldRosNode {
   void createSphere(const geometry_msgs::Point& pos, double radius, const ros::Time& stamp, visualization_msgs::Marker& marker);
   void createCylinder(const geometry_msgs::Point& p1, const geometry_msgs::Point p2, double radius, const ros::Time& stamp, visualization_msgs::Marker& marker);
   void visualizeRobotAndHuman();  
+  safety_shield::ShieldType getShieldTypeFromString(std::string type);
   
   // callbacks
   void goalJointPosCallback(const std_msgs::Float32MultiArray& msg);

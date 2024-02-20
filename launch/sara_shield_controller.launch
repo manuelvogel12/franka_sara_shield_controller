@@ -10,6 +10,7 @@
   
   <rosparam command="load" file="$(find franka_sara_shield_controller)/config/franka_sara_shield_controller.yaml" subst_value="true" />
   <rosparam command="load" file="$(find franka_sara_shield_controller)/config/panda_init_pose.yaml" subst_value="true" />
+  <param name="/sara_shield/shield_type" type="string" value="SSM" />
   
   <node name="sara_shield_node" pkg="franka_sara_shield_controller" type="sara_shield_node" />
 

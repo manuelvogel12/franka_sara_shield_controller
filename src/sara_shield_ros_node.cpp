@@ -20,6 +20,7 @@ SaraShieldRosNode::SaraShieldRosNode():
   ROS_WARN("Creating SaRA shield node.");
     // safety shield values
   double sample_time = 0.004;
+  std::vector<double> init_qpos = {0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4};
   std::string config_folder = std::getenv("SARA_SHIELD_CONFIG_PATH");
   std::string trajectory_config_file = config_folder + "/trajectory_parameters_panda.yaml";
   std::string robot_config_file = config_folder + "/robot_parameters_panda.yaml";
@@ -32,8 +33,11 @@ SaraShieldRosNode::SaraShieldRosNode():
   nh.getParam("/panda/init_pitch", init_pitch_);
   nh.getParam("/panda/init_yaw", init_yaw_);
   nh.getParam("/franka_control/arm_id", arm_id_);
-  std::vector<double> init_qpos = {0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4};
-  ROS_WARN_STREAM("Building SaRA shield with params: init pos = [" <<
+  std::string type;
+  nh.getParam("/sara_shield/shield_type", type);
+  shield_type_ = getShieldTypeFromString(type);
+  ROS_WARN_STREAM("Building SaRA shield with params: shield_type = " << type << ", " << 
+    "init pos = [" <<
     std::to_string(init_x_) << ", " <<
     std::to_string(init_y_) << ", " <<
     std::to_string(init_z_) << "], init roll, pitch, yaw = [" <<
@@ -55,7 +59,8 @@ SaraShieldRosNode::SaraShieldRosNode():
     init_yaw_,
     init_pitch_,
     init_roll_,
-    init_qpos);
+    init_qpos,
+    shield_type_);
   ROS_WARN("Initializing SaRA shield subscribers.");
   // Human measurement
   int n_meas = sizeof(human_pose_sub_array_);
@@ -100,9 +105,9 @@ void SaraShieldRosNode::main_loop(const ros::TimerEvent &){
         desired_joint_state_msg.velocity = next_motion.getVelocity();
         desired_joint_state_pub_.publish(desired_joint_state_msg);
 
-        if(!shield_->getSafety()){
+        /*if(!shield_->getSafety()){
             ROS_ERROR("NOT SAFE");
-        }
+        }*/
 
         // visualize human every 100 iterations
         if(update_iteration_++ == visualize_every_){
@@ -118,6 +123,19 @@ void SaraShieldRosNode::main_loop(const ros::TimerEvent &){
     }
 }
 
+
+safety_shield::ShieldType SaraShieldRosNode::getShieldTypeFromString(std::string type) {
+  if (type == "SSM") {
+    return safety_shield::ShieldType::SSM;
+  } else if (type == "PFL") {
+    return safety_shield::ShieldType::PFL;
+  } else if (type == "OFF") {
+    return safety_shield::ShieldType::OFF;
+  } else {
+    ROS_ERROR_STREAM("Shield Type " << type << " unknown. Defaulting to SSM.");
+    return safety_shield::ShieldType::SSM;
+  }
+}
 
 // ROS Callbacks
 
@@ -141,7 +159,8 @@ void SaraShieldRosNode::observeRobotJointCallback(const std_msgs::Float32MultiAr
       init_pitch_,
       init_roll_,
       initial_pose_vec,
-      ros::Time::now().toSec()
+      ros::Time::now().toSec(),
+      shield_type_
     );
     init_ = true;
   }

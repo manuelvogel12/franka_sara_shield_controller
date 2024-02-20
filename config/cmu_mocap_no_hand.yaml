@@ -74,7 +74,7 @@ bodies:
   - name: "head"
     proximal: "head"
     distal: "head"
-    thickness: 0.434
+    thickness: 0.25
 
 extremities:
   - name: "lArm"
