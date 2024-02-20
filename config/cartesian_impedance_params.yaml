@@ -1,0 +1,21 @@
+!!python/object/new:dynamic_reconfigure.encoding.Config
+dictitems:
+  groups: !!python/object/new:dynamic_reconfigure.encoding.Config
+    dictitems:
+      groups: !!python/object/new:dynamic_reconfigure.encoding.Config
+        state: []
+      id: 0
+      name: Default
+      nullspace_stiffness: 10.0
+      parameters: !!python/object/new:dynamic_reconfigure.encoding.Config
+        state: []
+      parent: 0
+      rotational_stiffness: 3.0
+      state: true
+      translational_stiffness: 60.0
+      type: ''
+    state: []
+  nullspace_stiffness: 10.0
+  rotational_stiffness: 3.0
+  translational_stiffness: 60.0
+state: []
