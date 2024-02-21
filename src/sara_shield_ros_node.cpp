@@ -11,10 +11,12 @@ SaraShieldRosNode::SaraShieldRosNode():
     force_unsafe_sub_(nh.subscribe("/sara_shield/force_unsafe", 100, & SaraShieldRosNode::forceUnsafeCallback, this)),
     humans_in_scene_sub_(nh.subscribe("/sara_shield/humans_in_scene", 100, &SaraShieldRosNode::humansInSceneCallback, this)),
     robot_current_pos_sub_(nh.subscribe("/sara_shield/observed_joint_pos", 100, &SaraShieldRosNode::observeRobotJointCallback, this)),
+    shield_mode_sub_(nh.subscribe("/sara_shield/shield_mode", 100, &SaraShieldRosNode::shieldModeCallback, this)),
     human_marker_pub_(nh.advertise<visualization_msgs::MarkerArray>("/sara_shield/human_joint_marker_array", 100)),
     robot_marker_pub_(nh.advertise<visualization_msgs::MarkerArray>("/sara_shield/robot_joint_marker_array", 100)),
     sara_shield_safe_pub_(nh.advertise<std_msgs::Bool>("/sara_shield/is_safe", 100)),
     desired_joint_state_pub_(nh.advertise<sensor_msgs::JointState>("/sara_shield/desired_joint_state", 100)),
+    impedance_mode_pub_(nh.advertise<std_msgs::Bool>("/sara_shield/set_impedance_mode", 100)),
     timer_(nh.createTimer(ros::Duration(0.004), &SaraShieldRosNode::main_loop, this))
 {
   ROS_WARN("Creating SaRA shield node.");
@@ -46,6 +48,7 @@ SaraShieldRosNode::SaraShieldRosNode():
     std::to_string(init_yaw_) << "]."
   );
   sendBaseTransform();
+  sendImpedanceMode();
   // safety shield init
   // Right now, the roll and yaw rotation are confused in the safety shield. This will be fixed in the future.
   shield_ = new safety_shield::SafetyShield(
@@ -83,44 +86,58 @@ SaraShieldRosNode::SaraShieldRosNode():
 }
 
 void SaraShieldRosNode::main_loop(const ros::TimerEvent &){
+  if(!init_) {
+    return;
+  }
+  shield_->humanMeasurement(human_meas_, last_human_meas_time_.toSec());
 
-    if(init_)
-    {
-        shield_->humanMeasurement(human_meas_, last_human_meas_time_.toSec());
+  // check if a new goal pose is set. If so, give a new LongTermTrajectory to sara shield
+  if(new_goal_){
+      new_goal_ = false;
+      std::vector<double> qvel{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+      shield_->newLongTermTrajectory(goal_joint_pos_, qvel);
+      std::cout<<"new trajectory set"<<std::endl;
+  }
 
-        // check if a new goal pose is set. If so, give a new LongTermTrajectory to sara shield
-        if(new_goal_){
-            new_goal_ = false;
-            std::vector<double> qvel{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-            shield_->newLongTermTrajectory(goal_joint_pos_, qvel);
-            std::cout<<"new trajectory set"<<std::endl;
-        }
+  // Perform a sara shield update step
+  safety_shield::Motion next_motion = shield_->step(ros::Time::now().toSec());
+  // Send out the message
+  sensor_msgs::JointState desired_joint_state_msg;
+  desired_joint_state_msg.header.stamp = ros::Time::now();
+  desired_joint_state_msg.position = next_motion.getAngle();
+  desired_joint_state_msg.velocity = next_motion.getVelocity();
+  desired_joint_state_pub_.publish(desired_joint_state_msg);
 
-        // Perform a sara shield update step
-        safety_shield::Motion next_motion = shield_->step(ros::Time::now().toSec());
-        // Send out the message
-        sensor_msgs::JointState desired_joint_state_msg;
-        desired_joint_state_msg.header.stamp = ros::Time::now();
-        desired_joint_state_msg.position = next_motion.getAngle();
-        desired_joint_state_msg.velocity = next_motion.getVelocity();
-        desired_joint_state_pub_.publish(desired_joint_state_msg);
+  /*if(!shield_->getSafety()){
+      ROS_ERROR("NOT SAFE");
+  }*/
 
-        /*if(!shield_->getSafety()){
-            ROS_ERROR("NOT SAFE");
-        }*/
+  // visualize human every 100 iterations
+  if(update_iteration_++ == visualize_every_){
+      update_iteration_ = 0;
+      sendBaseTransform();
+      visualizeRobotAndHuman();
+  }
 
-        // visualize human every 100 iterations
-        if(update_iteration_++ == visualize_every_){
-            update_iteration_ = 0;
-            sendBaseTransform();
-            visualizeRobotAndHuman();
-        }
+  // Send status bool
+  std_msgs::Bool status;
+  status.data = shield_->getSafety();
+  sara_shield_safe_pub_.publish(status);
+}
 
-        // Send status bool
-        std_msgs::Bool status;
-        status.data = shield_->getSafety();
-        sara_shield_safe_pub_.publish(status);
-    }
+
+void SaraShieldRosNode::resetShield() {
+  shield_->reset(
+    init_x_,
+    init_y_,
+    init_z_,
+    init_yaw_,
+    init_pitch_,
+    init_roll_,
+    current_joint_pos_,
+    ros::Time::now().toSec(),
+    shield_type_
+  );
 }
 
 
@@ -137,6 +154,20 @@ safety_shield::ShieldType SaraShieldRosNode::getShieldTypeFromString(std::string
   }
 }
 
+
+void SaraShieldRosNode::sendImpedanceMode() {
+  std_msgs::Bool status;
+  if (shield_type_ == safety_shield::ShieldType::SSM || shield_type_ == safety_shield::ShieldType::PFL) {
+    status.data = true;
+  } else if (shield_type_ == safety_shield::ShieldType::OFF) {
+    status.data = false;
+  } else {
+    ROS_ERROR_STREAM("shield_type_ unknown!!!");
+    status.data = true;
+  }
+  impedance_mode_pub_.publish(status);
+}
+
 // ROS Callbacks
 
 void SaraShieldRosNode::goalJointPosCallback(const std_msgs::Float32MultiArray& msg)
@@ -148,20 +179,10 @@ void SaraShieldRosNode::goalJointPosCallback(const std_msgs::Float32MultiArray& 
 
 void SaraShieldRosNode::observeRobotJointCallback(const std_msgs::Float32MultiArray& msg)
 {
+  current_joint_pos_ = std::vector<double>(msg.data.begin(), msg.data.end());
   if(!init_){
-    std::vector<double> initial_pose_vec(msg.data.begin(), msg.data.end());
     // Right now, the roll and yaw rotation are confused in the safety shield. This will be fixed in the future.
-    shield_->reset(
-      init_x_,
-      init_y_,
-      init_z_,
-      init_yaw_,
-      init_pitch_,
-      init_roll_,
-      initial_pose_vec,
-      ros::Time::now().toSec(),
-      shield_type_
-    );
+    resetShield();
     init_ = true;
   }
 }
@@ -179,6 +200,12 @@ void SaraShieldRosNode::humansInSceneCallback(const std_msgs::Bool& msg) {
   //if (!msg.data) {
   //  shield_->noHumanInTheScene();
   //}
+}
+
+void SaraShieldRosNode::shieldModeCallback(const std_msgs::String& msg) {
+  shield_type_ = getShieldTypeFromString(msg.data);
+  sendImpedanceMode();
+  resetShield();
 }
 
 // VISUALIZATION

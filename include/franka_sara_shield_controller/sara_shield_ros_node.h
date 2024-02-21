@@ -9,14 +9,16 @@
 
 #include <ros/node_handle.h>
 #include <ros/time.h>
+#include <tf/transform_broadcaster.h>
+
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/String.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <sensor_msgs/JointState.h>
 #include <visualization_msgs/MarkerArray.h>
-#include <tf/transform_broadcaster.h>
 
 #include "safety_shield/safety_shield.h"
 
@@ -41,6 +43,7 @@ class SaraShieldRosNode {
   ros::Time last_human_meas_time_;
   std::vector<double> goal_joint_pos_;
   std::vector<std::vector<double>> human_meas_;
+  std::vector<double> current_joint_pos_;
 
   ros::NodeHandle nh;
   ros::Timer timer_;
@@ -50,13 +53,17 @@ class SaraShieldRosNode {
   ros::Subscriber force_unsafe_sub_;
   ros::Subscriber humans_in_scene_sub_;
   ros::Subscriber robot_current_pos_sub_;
+  ros::Subscriber shield_mode_sub_;
   // 9 measurements: head, clav, torso, left_hand, left_elbow, left_shoulder, right_hand, right_elbow, right_shoulder
   std::array<ros::Subscriber, 9> human_pose_sub_array_;
   ros::Publisher robot_marker_pub_;
   ros::Publisher sara_shield_safe_pub_;
   ros::Publisher desired_joint_state_pub_;
+  ros::Publisher impedance_mode_pub_;
   
   void sendBaseTransform();
+  void sendImpedanceMode();
+  void resetShield();
   void createPoints(visualization_msgs::MarkerArray& markers, int nb_points_to_add, int shape_type, int color_type);
   void createCapsules(visualization_msgs::MarkerArray& markers, const std::vector<std::vector<double>>& capsules);
   void createSphere(const geometry_msgs::Point& pos, double radius, const ros::Time& stamp, visualization_msgs::Marker& marker);
@@ -70,6 +77,7 @@ class SaraShieldRosNode {
   void forceSafeCallback(const std_msgs::Bool & msg);
   void forceUnsafeCallback(const std_msgs::Bool & msg);
   void humansInSceneCallback(const std_msgs::Bool& msg);
+  void shieldModeCallback(const std_msgs::String& msg);
   // human meas callbacks
   void humanPoseCallbackHead(const geometry_msgs::PoseStamped& msg);
   void humanPoseCallbackClav(const geometry_msgs::PoseStamped& msg);

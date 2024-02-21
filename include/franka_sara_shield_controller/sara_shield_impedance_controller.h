@@ -78,7 +78,7 @@ class SaraShieldImpedanceController : public controller_interface::MultiInterfac
    * True if the controller is in the joint impedance mode.
    * False if the controller is in the Cartesian impedance mode.
   */
-  bool is_in_joint_impedance_state_ = false;
+  bool is_in_joint_impedance_state_ = true;
 
   // Limits the change in torque. Currently not used.
   static constexpr double k_delta_tau_max_{1.0};
