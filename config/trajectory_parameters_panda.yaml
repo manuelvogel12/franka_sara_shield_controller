@@ -2,9 +2,9 @@ robot_name: "panda"
 
 # Failsafe information
 max_s_stop: 0.2
-q_min_allowed: [-2.9, -1.8, -2.9, -3.1, -2.9, -0.02, -2.9]
-q_max_allowed: [2.9, 1.8, 2.9, 0.07, 2.9, 3.75, 2.9]
-v_max_allowed: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+q_min_allowed: [-2.3, -1.5, -2.4837, -2.7378, -2.4700, 0.8421, -2.6795]
+q_max_allowed: [2.3, 1.5, 2.4837, -0.4561, 2.4700, 4.2, 2.6795]
+v_max_allowed: [2.0, 1.0, 2.0, 1.25, 3.00, 1.50, 3.00]
 a_max_allowed: [20, 20, 20, 20, 20, 20, 20]
 j_max_allowed: [400, 400, 400, 400, 400, 400, 400]
 # Maximum long-term planning acc / jerk
