@@ -26,6 +26,7 @@
        - human/right_shoulder
        - human/right_elbow
        - human/right_hand
+       - objects/screwdriver
     </rosparam>
   </node>
 

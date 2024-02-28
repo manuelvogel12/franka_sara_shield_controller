@@ -12,11 +12,15 @@ SaraShieldRosNode::SaraShieldRosNode():
     humans_in_scene_sub_(nh.subscribe("/sara_shield/humans_in_scene", 100, &SaraShieldRosNode::humansInSceneCallback, this)),
     robot_current_pos_sub_(nh.subscribe("/sara_shield/observed_joint_pos", 100, &SaraShieldRosNode::observeRobotJointCallback, this)),
     shield_mode_sub_(nh.subscribe("/sara_shield/shield_mode", 100, &SaraShieldRosNode::shieldModeCallback, this)),
+    gripper_command_sub_(nh.subscribe("/sara_shield/gripper_command", 100, &SaraShieldRosNode::gripperCommandCallback, this)),
+    gripper_success_sub_(nh.subscribe("/franka_gripper/grasp/result", 100, &SaraShieldRosNode::gripperSuccessCallback, this)),
     human_marker_pub_(nh.advertise<visualization_msgs::MarkerArray>("/sara_shield/human_joint_marker_array", 100)),
     robot_marker_pub_(nh.advertise<visualization_msgs::MarkerArray>("/sara_shield/robot_joint_marker_array", 100)),
     sara_shield_safe_pub_(nh.advertise<std_msgs::Bool>("/sara_shield/is_safe", 100)),
     desired_joint_state_pub_(nh.advertise<sensor_msgs::JointState>("/sara_shield/desired_joint_state", 100)),
     impedance_mode_pub_(nh.advertise<std_msgs::Bool>("/sara_shield/set_impedance_mode", 100)),
+    gripper_command_pub_(nh.advertise<franka_gripper::GraspActionGoal>("/franka_gripper/grasp/goal", 100)),
+    gripper_success_pub_(nh.advertise<std_msgs::Bool>("/sara_shield/gripper_success", 100)),
     timer_(nh.createTimer(ros::Duration(0.004), &SaraShieldRosNode::main_loop, this))
 {
   ROS_WARN("Creating SaRA shield node.");
@@ -206,6 +210,26 @@ void SaraShieldRosNode::shieldModeCallback(const std_msgs::String& msg) {
   shield_type_ = getShieldTypeFromString(msg.data);
   sendImpedanceMode();
   resetShield();
+}
+
+void SaraShieldRosNode::gripperCommandCallback(const std_msgs::Bool& msg) {
+  franka_gripper::GraspActionGoal msg_out;
+  msg_out.goal.epsilon.inner = 1.0;
+  msg_out.goal.epsilon.outer = 1.0;
+  msg_out.goal.speed = 0.05;
+  msg_out.goal.force = 0.05;
+  if (msg.data) {
+    msg_out.goal.width = 0.0;
+  } else {
+    msg_out.goal.width = 1.0;
+  }
+  gripper_command_pub_.publish(msg_out);
+}
+
+void SaraShieldRosNode::gripperSuccessCallback(const franka_gripper::GraspActionResult& msg) {
+  std_msgs::Bool msg_out;
+  msg_out.data = msg.result.success;
+  gripper_success_pub_.publish(msg_out);
 }
 
 // VISUALIZATION

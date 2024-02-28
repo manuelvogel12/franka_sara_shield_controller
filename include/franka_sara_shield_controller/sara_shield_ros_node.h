@@ -20,6 +20,9 @@
 #include <sensor_msgs/JointState.h>
 #include <visualization_msgs/MarkerArray.h>
 
+#include <franka_gripper/GraspActionGoal.h>
+#include <franka_gripper/GraspActionResult.h>
+
 #include "safety_shield/safety_shield.h"
 
 namespace franka_sara_shield_controller {
@@ -54,12 +57,16 @@ class SaraShieldRosNode {
   ros::Subscriber humans_in_scene_sub_;
   ros::Subscriber robot_current_pos_sub_;
   ros::Subscriber shield_mode_sub_;
+  ros::Subscriber gripper_command_sub_;
+  ros::Subscriber gripper_success_sub_;
   // 9 measurements: head, clav, torso, left_hand, left_elbow, left_shoulder, right_hand, right_elbow, right_shoulder
   std::array<ros::Subscriber, 9> human_pose_sub_array_;
   ros::Publisher robot_marker_pub_;
   ros::Publisher sara_shield_safe_pub_;
   ros::Publisher desired_joint_state_pub_;
   ros::Publisher impedance_mode_pub_;
+  ros::Publisher gripper_command_pub_;
+  ros::Publisher gripper_success_pub_;
   
   void sendBaseTransform();
   void sendImpedanceMode();
@@ -78,6 +85,8 @@ class SaraShieldRosNode {
   void forceUnsafeCallback(const std_msgs::Bool & msg);
   void humansInSceneCallback(const std_msgs::Bool& msg);
   void shieldModeCallback(const std_msgs::String& msg);
+  void gripperCommandCallback(const std_msgs::Bool& msg);
+  void gripperSuccessCallback(const franka_gripper::GraspActionResult& msg);
   // human meas callbacks
   void humanPoseCallbackHead(const geometry_msgs::PoseStamped& msg);
   void humanPoseCallbackClav(const geometry_msgs::PoseStamped& msg);
